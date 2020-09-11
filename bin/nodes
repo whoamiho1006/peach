@@ -1,0 +1,154 @@
+#!/usr/bin/php -q
+<?php
+
+include_once (dirname(__DIR__) . '/lib/peach.php');
+$Subcommands = peach\Exec::getValues();
+
+if (count ($Subcommands) <= 0) {
+    echo "usage: nodes {start|stop|status} [node-name]\n";
+    echo "usage: nodes {add|remove} <node-name> host:port\n";
+    echo "  * this adds or removes a remote peer.\n";
+    echo "usage: nodes {add|remove} <node-name> port\n";
+    echo "  * this adds or removes a local peer.\n";
+    $Subcommands[] = 'status';
+}
+
+$opt = array_shift($Subcommands);
+$nodeos = [];
+
+$nodeos = \eosio\Nodeos::getAll();
+
+$nodeName = null;
+if (count ($Subcommands)) {
+    $nodeName = array_shift($Subcommands);
+}
+
+$hostPort = null;
+if (count ($Subcommands)) {
+    $hostPort = array_shift($Subcommands);
+}
+
+foreach ($nodeos as $each) {
+    foreach ($nodeos as $node) {
+        if ($each != $node) {
+            $each->addPeer($node);
+        }
+    }
+}
+
+switch ($opt) {
+    case "status":
+        if (!count($nodeos)) {
+            echo "No nodes configured.";
+        }
+        
+        foreach ($nodeos as $node) {
+            if (!$nodeName || $node->getName() == $nodeName) {
+                $Name = $node->getName();
+                $Peer = $node->getPeerAddress();
+                $KP = $node->getKeyPair();
+                
+                echo " * {$Name}. {$Peer} -" . ($node->isAlive() 
+                    ? ' ALIVE ' : ' DEAD') . "\n";
+                
+                echo $KP->getPubKey() . '  ' . $KP->getPvtKey() . "\n";
+            }
+        }
+        break;
+        
+    case "init":
+        if (!$nodeName) {
+            echo "Init requires Public-key.\n";
+            echo "usage: nodes init INIT_KEY\n";
+            exit(-1);
+        }
+        
+        \eosio\Nodeos::setInitKey(new \eosio\keys\PubKey($nodeName));
+        break;
+    
+    case "start":
+        if (!count($nodeos)) {
+            echo "No nodes configured.\n";
+        }
+        
+        if (!\eosio\Nodeos::getInitKey()) {
+            echo "No init key configured!\n";
+            exit(-1);
+        }
+        
+        foreach ($nodeos as $node) {
+            if (!$nodeName || $node->getName() == $nodeName) {
+                $node->start();
+            }
+        }
+        break;
+    
+    case "stop":
+        if (!count($nodeos)) {
+            echo "No nodes configured.\n";
+        }
+        
+        if (!\eosio\Nodeos::getInitKey()) {
+            echo "No init key configured!\n";
+            exit(-1);
+        }
+        
+        foreach ($nodeos as $node) {
+            if (!$nodeName || $node->getName() == $nodeName) { 
+                $node->stop();
+            }
+        }
+        break;
+        
+    case "add":
+        if (!$nodeName || !$hostPort) {
+            echo "No node name, host:port specified.\n";
+            return;
+        }
+        
+        $hostName = '127.0.0.1';
+        $portNumb = $hostPort;
+        
+        if (($p = strpos($hostPort, ':')) !== false) {
+            $hostName = trim(substr($hostPort, 0, $p));
+            $portNumb = trim(substr($hostPort, $p + 1));
+        }
+        
+        if ($portNumb != intval($portNumb)) {
+            echo "invalid port number specified.\n";
+            return;
+        }
+
+        $portNumb = intval($portNumb);
+        \eosio\Nodeos::add($nodeName, $portNumb, $hostName);
+        break;
+    
+    case "remove":
+        if (!$nodeName) {
+            echo "No node name specified.\n";
+            return;
+        }
+        
+        if (!isset($ConfiguredNodeos[$nodeName])) {
+            echo "No such node configured.\n";
+            return;
+        }
+        
+        \eosio\Nodeos::remove($nodeName);
+        break;
+}
+/*
+ * cleos create key --to-console
+Private key: 5JXMKJ7RYK1wCZozheFvCLM8VKff5cF8QkHT7ykHoDFC96Fp8PC
+Public key: EOS6rFZDZxdzbCYQ2uFbcYfMPjgvswTGttYqAcoB2vQNiuw5AM2X4
+ *  
+
+$KeyPair = $keosd->getKeyPair();
+
+echo $KeyPair->getPubKey() . PHP_EOL;
+echo $KeyPair->getPvtKey() . PHP_EOL;
+
+//123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
+//123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz 
+
+echo date(PEACH_DATEFMT);*/

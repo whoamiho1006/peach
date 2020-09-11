@@ -1,0 +1,42 @@
+#!/usr/bin/php -q
+<?php
+
+include_once (dirname(__DIR__) . '/lib/peach.php');
+$Subcommands = peach\Exec::getValues();
+
+if (count ($Subcommands) <= 0) {
+    echo "usage: keos {start|stop|status}\n";
+    $Subcommands[] = 'status';
+}
+
+$opt = array_shift($Subcommands);
+$keos = eosio\Keosd::get();
+
+switch ($opt) {
+    case "status":
+        echo "keosd: " . ($keos->isAlive() ? 'running' : 'stopped') . PHP_EOL;
+        break;
+        
+    case "start":
+        $keos->start();
+        break;
+    
+    case "stop":
+        $keos->stop();
+        break;
+}
+/*
+ * cleos create key --to-console
+Private key: 5JXMKJ7RYK1wCZozheFvCLM8VKff5cF8QkHT7ykHoDFC96Fp8PC
+Public key: EOS6rFZDZxdzbCYQ2uFbcYfMPjgvswTGttYqAcoB2vQNiuw5AM2X4
+ *  
+
+$KeyPair = $keosd->getKeyPair();
+
+echo $KeyPair->getPubKey() . PHP_EOL;
+echo $KeyPair->getPvtKey() . PHP_EOL;
+
+//123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
+//123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz 
+
+echo date(PEACH_DATEFMT);*/

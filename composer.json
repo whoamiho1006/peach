@@ -1,0 +1,6 @@
+{
+    "require": {
+        "simplito/elliptic-php": "^1.0",
+        "tuupola/base58": "^2.0"
+    }
+}
